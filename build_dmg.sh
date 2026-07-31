@@ -7,7 +7,8 @@ APP="SubtitleDownloaderGUI.app"
 VERSION="1.2.0"
 DMG_NAME="SubtitleDownloaderGUI-${VERSION}.dmg"
 TMP_DMG="SubtitleDownloaderGUI-${VERSION}-tmp.dmg"
-MOUNT_POINT="/Volumes/SubtitleDownloaderGUI"
+VOLNAME="SubtitleDownloaderGUI"
+MOUNT_POINT="/Volumes/${VOLNAME}"
 ICONSET_DIR="build/SubtitleDownloaderGUI.iconset"
 ICNS_FILE="build/SubtitleDownloaderGUI.icns"
 STAGING_DIR="build/dmg-staging"
@@ -41,18 +42,25 @@ iconutil -c icns "${ICONSET_DIR}" -o "${ICNS_FILE}"
 cp "${ICNS_FILE}" "${STAGING_DIR}/.VolumeIcon.icns"
 
 echo "创建临时 DMG..."
-hdiutil create -srcfolder "${STAGING_DIR}" -volname "SubtitleDownloaderGUI" -fs HFS+ -format UDRW -size 100m "${TMP_DMG}"
+hdiutil create -srcfolder "${STAGING_DIR}" -volname "${VOLNAME}" -fs HFS+ -format UDRW -size 100m "${TMP_DMG}"
 
 echo "挂载 DMG 并设置卷图标..."
-hdiutil attach -readwrite -noverify -noautoopen "${TMP_DMG}" >/dev/null
+MOUNT_OUTPUT=$(hdiutil attach -readwrite -noverify -noautoopen "${TMP_DMG}")
+echo "${MOUNT_OUTPUT}"
+# 找到实际挂载点（可能带序号）
+ACTUAL_MOUNT=$(echo "${MOUNT_OUTPUT}" | grep "/Volumes/" | awk '{print $NF}')
+if [ -z "${ACTUAL_MOUNT}" ]; then
+    ACTUAL_MOUNT="${MOUNT_POINT}"
+fi
 # 等待卷挂载完成
 sleep 2
-SetFile -a C "/Volumes/SubtitleDownloaderGUI"
+SetFile -a C "${ACTUAL_MOUNT}"
 
 echo "设置 DMG 窗口布局..."
-osascript <<'APPLESCRIPT'
+osascript <<APPLESCRIPT
+set diskName to "${VOLNAME}"
 tell application "Finder"
-    tell disk "SubtitleDownloaderGUI"
+    tell disk diskName
         open
         set current view of container window to icon view
         set toolbar visible of container window to false
@@ -71,7 +79,7 @@ APPLESCRIPT
 
 echo "卸载并压缩 DMG..."
 sleep 1
-hdiutil detach "/Volumes/SubtitleDownloaderGUI" -force
+hdiutil detach "${ACTUAL_MOUNT}" -force
 hdiutil convert "${TMP_DMG}" -format UDZO -imagekey zlib-level=9 -o "${DMG_NAME}"
 
 echo "清理临时文件..."
