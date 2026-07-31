@@ -14,11 +14,7 @@ struct SubtitleDownloaderGUIApp: App {
             CommandGroup(replacing: .appInfo) {
                 Button("关于 字幕下载助手") {
                     NSApplication.shared.orderFrontStandardAboutPanel(
-                        options: [
-                            NSApplication.AboutPanelOptionKey.credits: AttributedString(
-                                Localization.shared.text(.credits)
-                            )
-                        ]
+                        options: [:]
                     )
                 }
             }

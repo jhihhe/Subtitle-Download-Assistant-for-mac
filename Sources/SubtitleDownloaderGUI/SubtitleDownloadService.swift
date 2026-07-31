@@ -1,8 +1,20 @@
 import Foundation
 
+struct Candidate: Identifiable, Decodable {
+    let source: String
+    let name: String
+    let fileName: String
+    let format: String
+    let language: String
+    let score: Int
+
+    var id: String { "\(source)-\(fileName)-\(format)" }
+}
+
 enum DownloadEvent {
     case started(total: Int)
     case progress(path: String, status: String, detail: String, success: Bool?)
+    case candidates(path: String, candidates: [Candidate])
     case finished(success: Int, failed: Int, skipped: Int)
 }
 
@@ -13,6 +25,7 @@ struct DownloadServiceError: LocalizedError {
 
 actor SubtitleDownloadService {
     private let projectRoot: URL
+    private var standardInput: Pipe?
 
     init() {
         // 优先检查打包后的 .app Resources 目录
@@ -34,7 +47,7 @@ actor SubtitleDownloadService {
         }
     }
 
-    func download(paths: [String]) async throws -> AsyncThrowingStream<DownloadEvent, Error> {
+    func download(paths: [String], sources: [String], manual: Bool) async throws -> AsyncThrowingStream<DownloadEvent, Error> {
         let backendURL = projectRoot.appendingPathComponent("python_backend/download_subtitles.py")
         guard FileManager.default.fileExists(atPath: backendURL.path) else {
             throw DownloadServiceError(message: "找不到后端脚本：\(backendURL.path)")
@@ -42,6 +55,11 @@ actor SubtitleDownloadService {
 
         let pythonPath = try await resolvePython()
         var arguments = [backendURL.path, "--paths"] + paths
+        arguments.append("--sources")
+        arguments.append(contentsOf: sources)
+        if manual {
+            arguments.append("--manual")
+        }
         let overwrite = UserDefaults.standard.bool(forKey: "overwrite_existing")
         if overwrite {
             arguments.append("--overwrite")
@@ -55,9 +73,12 @@ actor SubtitleDownloadService {
             "PYTHONUNBUFFERED": "1"
         ]
 
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
+        let inputPipe = Pipe()
+        let outputPipe = Pipe()
+        process.standardInput = inputPipe
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+        self.standardInput = inputPipe
 
         return AsyncThrowingStream { continuation in
             Task {
@@ -68,7 +89,7 @@ actor SubtitleDownloadService {
                     return
                 }
 
-                let handle = pipe.fileHandleForReading
+                let handle = outputPipe.fileHandleForReading
                 let buffer = handle.bytes
 
                 do {
@@ -84,12 +105,36 @@ actor SubtitleDownloadService {
                 }
 
                 process.waitUntilExit()
+                self.standardInput = nil
                 if process.terminationStatus != 0 {
                     continuation.finish(throwing: DownloadServiceError(message: "后端退出码 \(process.terminationStatus)"))
                 } else {
                     continuation.finish()
                 }
             }
+        }
+    }
+
+    func sendSelection(path: String, index: Int?) {
+        guard let pipe = standardInput else { return }
+        let payload: [String: Any] = ["path": path, "index": index as Any]
+        guard let data = try? JSONSerialization.data(withJSONObject: payload, options: .fragmentsAllowed),
+              let line = String(data: data, encoding: .utf8) else { return }
+        if let lineData = "\(line)\n".data(using: .utf8) {
+            pipe.fileHandleForWriting.write(lineData)
+        }
+    }
+
+    private func decodeCandidates(from value: Any?) -> [Candidate] {
+        guard let array = value as? [[String: Any]] else { return [] }
+        return array.compactMap { dict in
+            guard let source = dict["source"] as? String,
+                  let name = dict["name"] as? String,
+                  let fileName = dict["file_name"] as? String,
+                  let format = dict["format"] as? String,
+                  let language = dict["language"] as? String else { return nil }
+            let score = dict["score"] as? Int ?? 0
+            return Candidate(source: source, name: name, fileName: fileName, format: format, language: language, score: score)
         }
     }
 
@@ -125,6 +170,10 @@ actor SubtitleDownloadService {
                 let detail = json["detail"] as? String ?? ""
                 let success: Bool? = json["success"] as? Bool
                 continuation.yield(.progress(path: path, status: status, detail: detail, success: success))
+            case "candidates":
+                let path = json["path"] as? String ?? ""
+                let candidates = self.decodeCandidates(from: json["candidates"])
+                continuation.yield(.candidates(path: path, candidates: candidates))
             case "finished":
                 let success = json["success"] as? Int ?? 0
                 let failed = json["failed"] as? Int ?? 0

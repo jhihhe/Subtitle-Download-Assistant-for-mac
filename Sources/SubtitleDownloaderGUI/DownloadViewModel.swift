@@ -17,6 +17,13 @@ enum DownloadPhase: Equatable {
     case finished
 }
 
+struct CandidateSelection: Identifiable {
+    let id = UUID()
+    let path: String
+    let candidates: [Candidate]
+    let continuation: CheckedContinuation<Int?, Never>
+}
+
 @MainActor
 final class DownloadViewModel: ObservableObject {
     @Published var paths: [String] = []
@@ -26,8 +33,20 @@ final class DownloadViewModel: ObservableObject {
     @Published var completedCount: Int = 0
     @Published var phase: DownloadPhase = .idle
     @Published var logLines: [String] = []
+    @Published var useShooter: Bool = true
+    @Published var useThunder: Bool = true
+    @Published var manualMode: Bool = false
+    @Published var pendingSelection: CandidateSelection?
 
     private var task: Task<Void, Never>?
+    private var service: SubtitleDownloadService?
+
+    var enabledSources: [String] {
+        var sources: [String] = []
+        if useShooter { sources.append("shooter") }
+        if useThunder { sources.append("thunder") }
+        return sources
+    }
 
     var progress: Double {
         guard totalVideos > 0 else { return 0 }
@@ -119,7 +138,7 @@ final class DownloadViewModel: ObservableObject {
     }
 
     func startDownload() {
-        guard !paths.isEmpty, !isRunning else { return }
+        guard !paths.isEmpty, !isRunning, !enabledSources.isEmpty else { return }
         isRunning = true
         items.removeAll()
         logLines.removeAll()
@@ -130,12 +149,11 @@ final class DownloadViewModel: ObservableObject {
         task = Task { [weak self] in
             guard let self = self else { return }
             let service = SubtitleDownloadService()
+            self.service = service
             do {
-                let stream = try await service.download(paths: self.paths)
+                let stream = try await service.download(paths: self.paths, sources: self.enabledSources, manual: self.manualMode)
                 for try await event in stream {
-                    await MainActor.run {
-                        self.apply(event)
-                    }
+                    await self.apply(event, service: service)
                 }
             } catch {
                 await MainActor.run {
@@ -145,11 +163,21 @@ final class DownloadViewModel: ObservableObject {
             await MainActor.run {
                 self.phase = .finished
                 self.isRunning = false
+                self.service = nil
             }
         }
     }
 
-    private func apply(_ event: DownloadEvent) {
+    func confirmSelection(index: Int?) {
+        guard let selection = pendingSelection else { return }
+        pendingSelection = nil
+        Task {
+            await service?.sendSelection(path: selection.path, index: index)
+        }
+        selection.continuation.resume(returning: index)
+    }
+
+    private func apply(_ event: DownloadEvent, service: SubtitleDownloadService) async {
         switch event {
         case let .started(total):
             totalVideos = total
@@ -168,6 +196,16 @@ final class DownloadViewModel: ObservableObject {
                 items.append(DownloadItem(path: path, status: localizedStatus, detail: detail, success: success))
             }
             logLines.append("[\(localizedStatus)] \(fileName) - \(detail)")
+        case let .candidates(path, candidates):
+            phase = .searching(name: URL(fileURLWithPath: path).lastPathComponent)
+            let index: Int? = await withCheckedContinuation { continuation in
+                pendingSelection = CandidateSelection(
+                    path: path,
+                    candidates: candidates,
+                    continuation: continuation
+                )
+            }
+            await service.sendSelection(path: path, index: index)
         case let .finished(success, failed, skipped):
             phase = .finished
             logLines.append(Localization.shared.text(.summary(success, failed, skipped)))

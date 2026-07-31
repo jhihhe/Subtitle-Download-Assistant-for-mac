@@ -7,7 +7,7 @@ A native macOS graphical subtitle downloader powered by SwiftUI + Python.
 [![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg?style=flat-square&logo=swift)](https://swift.org)
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg?style=flat-square&logo=python)](https://python.org)
 [![macOS](https://img.shields.io/badge/macOS-13.0+-000000.svg?style=flat-square&logo=apple)](https://apple.com/macos)
-[![Version](https://img.shields.io/badge/Version-1.1.0-ff69b4.svg?style=flat-square)](./README_EN.md)
+[![Version](https://img.shields.io/badge/Version-1.2.0-ff69b4.svg?style=flat-square)](./README_EN.md)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](./LICENSE)
 [![Author](https://img.shields.io/badge/Author-@Jhihhe-9cf.svg?style=flat-square)](https://github.com/jhihhe)
 
@@ -20,25 +20,27 @@ A native macOS graphical subtitle downloader powered by SwiftUI + Python.
 ## ✨ Features
 
 - 🖱️ **Drag & Drop**: Drop files or folders into the window; supports recursive scanning of multi-level folders
-- 📁 **Batch Selection**: Select multiple files or folders at once
+- 📁 **Batch Selection**: Select multiple files or folders at once; selected names are displayed in real time
 - 🔍 **Dual-Source Matching**: Queries Shooter.cn (content fingerprint) and Thunder (filename / CID) simultaneously
+- 🎛️ **Source Toggles & Manual Selection**: Enable or disable each subtitle source, and manually pick from multiple subtitle candidates
 - 📊 **Graphical Progress**: Overall progress bar, live status text, success/failed/skipped stat cards
 - 📝 **Detailed Logs**: Real-time processing results and runtime logs for every video
 - 🌐 **Bilingual UI**: One-click switch between Simplified Chinese and English
 - 🎯 **Smart Deduplication**: Auto-skip when subtitle already exists; overwrite mode supported
+- 🎨 **Native App Icon**: Modern macOS-style custom app icon
 
 ## 📸 Preview
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│  Subtitle Download Assistant          [简体中文][English]     │
+│  🎬 Subtitle Download Assistant        [简体中文][English]    │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │              ⬇ Drop files or folders here                   │
-│                    3 path(s) selected                       │
+│              3 path(s) selected (names shown)               │
 │                                                             │
 ├─────────────────────────────────────────────────────────────┤
-│  [Select Folder] [Select Files]            [Clear] [Start]  │
+│  [Select Folder] [Select Files]  ☑Shooter ☑Thunder  Auto/Manual [Clear][Start] │
 ├─────────────────────────────────────────────────────────────┤
 │  Overall Progress                                      67%  │
 │  ████████████████████████████████░░░░░░░░░░░░░░░░░░░░░░░  │

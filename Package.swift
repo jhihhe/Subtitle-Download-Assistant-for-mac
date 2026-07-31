@@ -13,7 +13,10 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "SubtitleDownloaderGUI",
-            path: "Sources/SubtitleDownloaderGUI"
+            path: "Sources/SubtitleDownloaderGUI",
+            resources: [
+                .process("Resources")
+            ]
         ),
     ]
 )

@@ -25,6 +25,11 @@ struct ContentView: View {
         }
         .frame(minWidth: 780, minHeight: 620)
         .onDrop(of: [UTType.fileURL], isTargeted: $isTargetedForDrop, perform: viewModel.handleDrop)
+        .sheet(item: $viewModel.pendingSelection) { selection in
+            CandidateSelectionSheet(selection: selection) { index in
+                viewModel.confirmSelection(index: index)
+            }
+        }
     }
 
     private var header: some View {
@@ -55,15 +60,39 @@ struct ContentView: View {
     }
 
     private var dropZone: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             Image(systemName: "arrow.down.circle.fill")
-                .font(.system(size: 42))
+                .font(.system(size: 38))
                 .foregroundStyle(.tint)
             Text(localized(.dropHint))
                 .font(.headline)
-            Text(localized(.selectedPaths(viewModel.paths.count)))
-                .font(.caption)
-                .foregroundColor(.secondary)
+            if !viewModel.paths.isEmpty {
+                Text(localized(.selectedPaths(viewModel.paths.count)))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 4) {
+                        ForEach(Array(viewModel.paths.enumerated()), id: \.offset) { _, path in
+                            HStack(spacing: 6) {
+                                let url = URL(fileURLWithPath: path)
+                                Image(systemName: url.hasDirectoryPath ? "folder.fill" : "film.fill")
+                                    .font(.caption2)
+                                    .foregroundColor(.accentColor)
+                                    .frame(width: 16)
+                                Text(url.lastPathComponent)
+                                    .font(.caption)
+                                    .lineLimit(1)
+                                Spacer()
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                }
+                .frame(maxHeight: 90)
+                .padding(6)
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(8)
+            }
         }
         .frame(maxWidth: .infinity, minHeight: 140)
         .padding()
@@ -80,23 +109,37 @@ struct ContentView: View {
     }
 
     private var controls: some View {
-        HStack(spacing: 12) {
-            Button(action: viewModel.selectFolder) {
-                Label(localized(.selectFolder), systemImage: "folder.badge.plus")
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                Button(action: viewModel.selectFolder) {
+                    Label(localized(.selectFolder), systemImage: "folder.badge.plus")
+                }
+                Button(action: viewModel.selectFiles) {
+                    Label(localized(.selectFiles), systemImage: "doc.badge.plus")
+                }
+                Spacer()
+                Button(action: viewModel.clearPaths) {
+                    Label(localized(.clear), systemImage: "trash")
+                }
+                .disabled(viewModel.paths.isEmpty || viewModel.isRunning)
+                Button(action: viewModel.startDownload) {
+                    Label(localized(.startDownload), systemImage: "arrow.down.circle")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(viewModel.paths.isEmpty || viewModel.isRunning || viewModel.enabledSources.isEmpty)
             }
-            Button(action: viewModel.selectFiles) {
-                Label(localized(.selectFiles), systemImage: "doc.badge.plus")
+            HStack(spacing: 16) {
+                Toggle(localized(.sourceShooter), isOn: $viewModel.useShooter)
+                Toggle(localized(.sourceThunder), isOn: $viewModel.useThunder)
+                Spacer()
+                Picker("", selection: $viewModel.manualMode) {
+                    Text(localized(.autoSelection)).tag(false)
+                    Text(localized(.manualSelection)).tag(true)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 180)
             }
-            Spacer()
-            Button(action: viewModel.clearPaths) {
-                Label(localized(.clear), systemImage: "trash")
-            }
-            .disabled(viewModel.paths.isEmpty || viewModel.isRunning)
-            Button(action: viewModel.startDownload) {
-                Label(localized(.startDownload), systemImage: "arrow.down.circle")
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(viewModel.paths.isEmpty || viewModel.isRunning)
+            .font(.caption)
         }
     }
 
@@ -215,9 +258,6 @@ struct ContentView: View {
 
     private var footer: some View {
         HStack {
-            Text(localized(.credits))
-                .font(.caption)
-                .foregroundColor(.secondary)
             Spacer()
             Text(localized(.author))
                 .font(.caption)
@@ -291,5 +331,76 @@ struct StatusBadge: View {
         case false: return .red
         default: return .orange
         }
+    }
+}
+
+struct CandidateSelectionSheet: View {
+    let selection: CandidateSelection
+    let onConfirm: (Int?) -> Void
+    @State private var selectedIndex: Int?
+    @StateObject private var localization = Localization.shared
+
+    var body: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Image(systemName: "captions.bubble.fill")
+                    .font(.title2)
+                    .foregroundColor(.accentColor)
+                Text(localized(.chooseSubtitle))
+                    .font(.headline)
+                Spacer()
+            }
+            Text(URL(fileURLWithPath: selection.path).lastPathComponent)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+
+            if selection.candidates.isEmpty {
+                Spacer()
+                Text(localized(.noCandidates))
+                    .foregroundColor(.secondary)
+                Spacer()
+            } else {
+                List(selection.candidates.indices, id: \.self, selection: $selectedIndex) { index in
+                    let candidate = selection.candidates[index]
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(candidate.name)
+                                .font(.system(size: 12, weight: .medium))
+                            HStack(spacing: 10) {
+                                Text(localized(.candidateSource(candidate.source)))
+                                Text(localized(.candidateFormat(candidate.format)))
+                                Text(localized(.candidateLanguage(candidate.language)))
+                                Text(localized(.candidateScore(candidate.score)))
+                                    .foregroundColor(.accentColor)
+                            }
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(.vertical, 4)
+                    .contentShape(Rectangle())
+                }
+                .listStyle(.plain)
+                .frame(minHeight: 160, maxHeight: 280)
+            }
+
+            HStack(spacing: 12) {
+                Button(localized(.cancel)) {
+                    onConfirm(nil)
+                }
+                .keyboardShortcut(.cancelAction)
+                Button(localized(.confirm)) {
+                    onConfirm(selectedIndex)
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(selectedIndex == nil && !selection.candidates.isEmpty)
+                .buttonStyle(.borderedProminent)
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding()
+        .frame(minWidth: 480, minHeight: 260)
     }
 }
