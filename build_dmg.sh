@@ -13,9 +13,13 @@ ICONSET_DIR="build/SubtitleDownloaderGUI.iconset"
 ICNS_FILE="build/SubtitleDownloaderGUI.icns"
 STAGING_DIR="build/dmg-staging"
 
-echo "清理旧构建..."
+echo "清理旧构建与旧挂载..."
 rm -rf "build"
 rm -f "${DMG_NAME}" "${TMP_DMG}"
+for mp in $(mount | grep -E "/Volumes/${VOLNAME}([[:space:]]+[0-9]+)?" | sed -E 's|.*on (/Volumes/.+) \(.*|\1|'); do
+    hdiutil detach "$mp" -force 2>/dev/null || true
+done
+sleep 1
 mkdir -p "${ICONSET_DIR}"
 mkdir -p "${STAGING_DIR}"
 
@@ -45,20 +49,22 @@ echo "创建临时 DMG..."
 hdiutil create -srcfolder "${STAGING_DIR}" -volname "${VOLNAME}" -fs HFS+ -format UDRW -size 100m "${TMP_DMG}"
 
 echo "挂载 DMG 并设置卷图标..."
-MOUNT_OUTPUT=$(hdiutil attach -readwrite -noverify -noautoopen "${TMP_DMG}")
-echo "${MOUNT_OUTPUT}"
-# 找到实际挂载点（可能带序号）
-ACTUAL_MOUNT=$(echo "${MOUNT_OUTPUT}" | grep "/Volumes/" | awk '{print $NF}')
+ATTACH_OUTPUT=$(hdiutil attach -readwrite -noverify -noautoopen "${TMP_DMG}")
+echo "${ATTACH_OUTPUT}"
+DEVICE=$(echo "${ATTACH_OUTPUT}" | grep '^/dev/' | head -1 | awk '{print $1}')
+# 等待卷挂载完成
+sleep 2
+# 获取实际挂载点（处理 /Volumes/Name 1 这类带空格路径）
+ACTUAL_MOUNT=$(mount | grep -E "/Volumes/${VOLNAME}([[:space:]]+[0-9]+)?" | head -1 | sed -E 's|.*on (/Volumes/.+) \(.*|\1|')
 if [ -z "${ACTUAL_MOUNT}" ]; then
     ACTUAL_MOUNT="${MOUNT_POINT}"
 fi
-# 等待卷挂载完成
-sleep 2
+DISK_NAME=$(basename "${ACTUAL_MOUNT}")
 SetFile -a C "${ACTUAL_MOUNT}"
 
-echo "设置 DMG 窗口布局..."
+echo "设置 DMG 窗口布局 (磁盘: ${DISK_NAME})..."
 osascript <<APPLESCRIPT
-set diskName to "${VOLNAME}"
+set diskName to "${DISK_NAME}"
 tell application "Finder"
     tell disk diskName
         open
@@ -78,8 +84,9 @@ end tell
 APPLESCRIPT
 
 echo "卸载并压缩 DMG..."
+sleep 2
+hdiutil detach "${DEVICE}" -force
 sleep 1
-hdiutil detach "${ACTUAL_MOUNT}" -force
 hdiutil convert "${TMP_DMG}" -format UDZO -imagekey zlib-level=9 -o "${DMG_NAME}"
 
 echo "清理临时文件..."

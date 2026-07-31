@@ -50,8 +50,6 @@ cat > "$APP/Contents/Info.plist" <<'EOF'
     <string>1.2.0</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
-    <key>CFBundleIconName</key>
-    <string>AppIcon</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>NSHighResolutionCapable</key>
