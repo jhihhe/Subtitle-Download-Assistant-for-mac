@@ -55,6 +55,12 @@ A native macOS graphical subtitle downloader powered by SwiftUI + Python.
 └─────────────────────────────────────────────────────────────┘
 ```
 
+### Screenshots
+
+![Main window - drag & drop and source toggles](Clipture-20260731-232202-001.png)
+
+![Manual subtitle selection sheet](Clipture-20260731-232257-002.png)
+
 ## 🚀 Quick Start
 
 ### Requirements
