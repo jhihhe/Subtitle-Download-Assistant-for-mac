@@ -1,0 +1,11 @@
+.build/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/
+DerivedData/
+*.app
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+.python-version
+.env
