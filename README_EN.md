@@ -1,3 +1,13 @@
+<!-- readme-visuals:header:start -->
+<p align="center"><img src="readme-assets/banner.svg" alt="Subtitle Assistant — Video files to subtitle candidates, with a native GUI" width="100%"></p>
+
+<p align="center">
+  <a href="https://github.com/jhihhe/Subtitle-Download-Assistant-for-mac/commits/main"><img src="https://img.shields.io/github/last-commit/jhihhe/Subtitle-Download-Assistant-for-mac?style=flat-square&amp;color=2dd4bf" alt="Last commit"></a>
+  <a href="https://github.com/jhihhe/Subtitle-Download-Assistant-for-mac/stargazers"><img src="https://img.shields.io/github/stars/jhihhe/Subtitle-Download-Assistant-for-mac?style=flat-square&amp;color=2dd4bf" alt="GitHub stars"></a>
+  <a href="https://github.com/jhihhe"><img src="https://img.shields.io/badge/Maintainer-%40Jhih%20he-2dd4bf?style=flat-square" alt="Maintainer: @Jhih he"></a>
+</p>
+<!-- readme-visuals:header:end -->
+
 <div align="center">
 
 # 🎬 Subtitle Download Assistant
@@ -16,6 +26,30 @@ A native macOS graphical subtitle downloader powered by SwiftUI + Python.
 </div>
 
 ---
+
+<!-- readme-visuals:overview:start -->
+
+## At a glance
+
+<table>
+<tr>
+<td width="33%"><strong>Files and folders</strong><br><br>Drop videos or folders with batch selection and recursive scanning.</td>
+<td width="33%"><strong>Two subtitle sources</strong><br><br>Toggle Shooter.cn and Thunder sources and choose candidates.</td>
+<td width="33%"><strong>Progress and logs</strong><br><br>Track progress, result counts and per-file logs.</td>
+</tr>
+</table>
+
+### Workflow overview
+
+```mermaid
+flowchart LR
+    S0["Add videos or folders"] --> S1
+    S1["Select subtitle sources"] --> S2
+    S2["Match and review candidates"] --> S3
+    S3["Save subtitles and review logs"]
+```
+
+<!-- readme-visuals:overview:end -->
 
 ## ✨ Features
 

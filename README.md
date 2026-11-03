@@ -1,3 +1,13 @@
+<!-- readme-visuals:header:start -->
+<p align="center"><img src="readme-assets/banner.svg" alt="Subtitle Assistant — Video files to subtitle candidates, with a native GUI" width="100%"></p>
+
+<p align="center">
+  <a href="https://github.com/jhihhe/Subtitle-Download-Assistant-for-mac/commits/main"><img src="https://img.shields.io/github/last-commit/jhihhe/Subtitle-Download-Assistant-for-mac?style=flat-square&amp;color=2dd4bf" alt="Last commit"></a>
+  <a href="https://github.com/jhihhe/Subtitle-Download-Assistant-for-mac/stargazers"><img src="https://img.shields.io/github/stars/jhihhe/Subtitle-Download-Assistant-for-mac?style=flat-square&amp;color=2dd4bf" alt="GitHub stars"></a>
+  <a href="https://github.com/jhihhe"><img src="https://img.shields.io/badge/Maintainer-%40Jhih%20he-2dd4bf?style=flat-square" alt="Maintainer: @Jhih he"></a>
+</p>
+<!-- readme-visuals:header:end -->
+
 <div align="center">
 
 # 🎬 字幕下载助手
@@ -16,6 +26,30 @@
 </div>
 
 ---
+
+<!-- readme-visuals:overview:start -->
+
+## 项目速览
+
+<table>
+<tr>
+<td width="33%"><strong>文件与目录</strong><br><br>拖放视频或文件夹，支持批量选择与递归扫描。</td>
+<td width="33%"><strong>双源匹配</strong><br><br>射手网与迅雷影音源，可分别启用并选择候选。</td>
+<td width="33%"><strong>进度与日志</strong><br><br>展示处理进度、结果统计及逐文件日志。</td>
+</tr>
+</table>
+
+### 流程概览
+
+```mermaid
+flowchart LR
+    S0["添加视频或文件夹"] --> S1
+    S1["选择字幕源"] --> S2
+    S2["匹配并核对候选"] --> S3
+    S3["保存字幕并查看日志"]
+```
+
+<!-- readme-visuals:overview:end -->
 
 ## ✨ 功能特性
 
